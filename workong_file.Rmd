@@ -1,0 +1,84 @@
+---
+title: "Extracting lat-long for Distribution centers"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+This walks through how to extract lat-long data for distribution centers using the `ggmap` package. 
+
+```{r}
+library(ggmap)
+library(readr)
+library(fields)
+```
+
+Next we need to import the Greensboro Charlotte dataset.
+
+```{r}
+dc_data <- readr::read_csv('data/Greensboro Charlotte.csv')
+```
+
+Now, we need to paste the address for each location, which is stored in several columns of our data. The following code does this by creating an object called `address`.
+
+```{r}
+address <- paste(dc_data$`Customer Name`,
+                 dc_data$City,
+                 dc_data$State,
+                 dc_data$`Postal Code`,
+                 sep = ' ')
+```
+
+
+```{r}
+Dimnames <- list(NULL, c('lon','lat'))
+latlon2000 <- matrix(NA, nrow = 2000, ncol = 2, dimnames = Dimnames)
+latlon4000 <- matrix(NA, nrow = 2000, ncol = 2, dimnames = Dimnames)
+latlonrest <- matrix(NA, nrow = (length(address) - 4000), ncol = 2, dimnames = Dimnames)
+```
+
+Finally, we use the function `geocode` from the `ggmap` package to return the lat-lon data for each address.
+
+```{r}
+latlon2000 <- ggmap::geocode(address[1:2000])
+save(latlon2000, file = 'data/latlon2000.RData')
+```
+
+
+Need to finish the rest later
+
+```{r, eval=FALSE}
+latlon4000 <- ggmap::geocode(address[2001:4000])
+latlonrest <- ggmap::geocode(address[4001:length(address)])
+```
+
+
+```{r}
+latlon <- as.data.frame(rbind(latlon2000, latlon4000, latlonrest))
+```
+
+Now, let's combine these results into a data.frame.
+
+```{r}
+df <- data.frame(Address = address,
+                 longitude = latlon$lon,
+                 latitude = latlon$lat)
+```
+save(latlon2000, file = 'data/latlon2000.RData')
+> View(latlon2000.RData)
+Error in View : object 'latlon2000.RData' not found
+> load("C:/Users/Daria/github/DC-optimization/data/latlon2000.RData")
+> View(latlon2000.RData)
+ load("C:/Users/Daria/github/DC-optimization/data/latlon2000.RData")
+> which(dc_data$City=='RUTHERFORDTON')
+
+```{r}
+dc1 <- geocode('201 Creek Ridge Rd Greensboro, NC 27406', source = 'dsk')
+
+dist_from_dc <- fields::rdist.earth.vec(as.matrix(latlon2000dsk), 
+                                        as.matrix(dc1))
+```
